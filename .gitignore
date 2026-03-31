@@ -1,0 +1,13 @@
+# Actual env file with real credentials
+.env
+
+# Container config directories (generated at runtime)
+gluetun/
+qbittorrent/
+prowlarr/
+radarr/
+sonarr/
+lidarr/
+bazarr/
+jellyfin/
+seerr/

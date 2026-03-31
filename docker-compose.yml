@@ -1,0 +1,286 @@
+# Tom Spark's ARR Stack — Automated Media Server
+# https://github.com/loponai/arrstack
+#
+# Usage:
+#   1. Copy .env.example to .env and fill in your VPN credentials
+#   2. Run: bash setup-folders.sh
+#   3. Run: docker compose up -d
+#
+# All VPN-protected services (qBittorrent, Prowlarr, FlareSolverr) run
+# through Gluetun. If the VPN drops, traffic stops. Zero leaks.
+#
+# Radarr, Sonarr, Lidarr, Bazarr, Jellyfin, and Seerr do NOT run through
+# the VPN — they need direct network access for speed and local connectivity.
+
+networks:
+  arrnetwork:
+    name: arrnetwork
+    ipam:
+      config:
+        - subnet: 172.39.0.0/24
+
+services:
+
+  # ============================================================
+  # GLUETUN — VPN Container (kill switch + tunnel)
+  # All VPN-protected services route through this container.
+  # Ports for those services are mapped HERE, not on the services themselves.
+  # Docs: https://github.com/qdm12/gluetun-wiki
+  # ============================================================
+  gluetun:
+    image: qmcgaw/gluetun
+    container_name: gluetun
+    cap_add:
+      - NET_ADMIN
+    devices:
+      - /dev/net/tun:/dev/net/tun
+    networks:
+      arrnetwork:
+        ipv4_address: ${IP_GLUETUN}
+    ports:
+      - 8080:8080     # qBittorrent WebUI
+      - 6881:6881     # qBittorrent torrenting port
+      - 6881:6881/udp
+      - 9696:9696     # Prowlarr
+      - 8191:8191     # FlareSolverr
+    volumes:
+      - ./gluetun:/gluetun
+    environment:
+      - VPN_SERVICE_PROVIDER=${VPN_SERVICE_PROVIDER}
+      - VPN_TYPE=${VPN_TYPE}
+      # --- WireGuard credentials (most providers) ---
+      - WIREGUARD_PRIVATE_KEY=${WIREGUARD_PRIVATE_KEY}
+      - WIREGUARD_ADDRESSES=${WIREGUARD_ADDRESSES}
+      - WIREGUARD_PUBLIC_KEY=${WIREGUARD_PUBLIC_KEY}
+      - WIREGUARD_PRESHARED_KEY=${WIREGUARD_PRESHARED_KEY}
+      # --- OpenVPN credentials (if using OpenVPN instead) ---
+      - OPENVPN_USER=${OPENVPN_USER}
+      - OPENVPN_PASSWORD=${OPENVPN_PASSWORD}
+      # --- Server selection ---
+      - SERVER_COUNTRIES=${SERVER_COUNTRIES}
+      # --- Port forwarding (ProtonVPN, AirVPN, PIA) ---
+      - VPN_PORT_FORWARDING=${VPN_PORT_FORWARDING}
+      - FIREWALL_VPN_INPUT_PORTS=${FIREWALL_VPN_INPUT_PORTS}
+      # --- General ---
+      - TZ=${TZ}
+      - HEALTH_VPN_DURATION_INITIAL=120s
+    healthcheck:
+      test: ping -c 1 www.google.com || exit 1
+      interval: 20s
+      timeout: 10s
+      retries: 5
+    restart: unless-stopped
+
+  # ============================================================
+  # QBITTORRENT — Torrent Client (runs through Gluetun VPN)
+  # ALL traffic goes through the VPN tunnel. No direct internet.
+  # ============================================================
+  qbittorrent:
+    image: lscr.io/linuxserver/qbittorrent:latest
+    container_name: qbittorrent
+    network_mode: service:gluetun
+    depends_on:
+      gluetun:
+        condition: service_healthy
+        restart: true
+    labels:
+      - deunhealth.restart.on.unhealthy=true
+    environment:
+      - PUID=${PUID}
+      - PGID=${PGID}
+      - TZ=${TZ}
+      - WEBUI_PORT=8080
+      - TORRENTING_PORT=${FIREWALL_VPN_INPUT_PORTS}
+    volumes:
+      - ./qbittorrent:/config
+      - /data:/data
+    healthcheck:
+      test: ping -c 1 www.google.com || exit 1
+      interval: 60s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+    restart: unless-stopped
+
+  # ============================================================
+  # DEUNHEALTH — Auto-restarts unhealthy containers
+  # If qBittorrent loses VPN connection, this restarts it automatically.
+  # ============================================================
+  deunhealth:
+    image: qmcgaw/deunhealth
+    container_name: deunhealth
+    network_mode: none
+    environment:
+      - LOG_LEVEL=info
+      - HEALTH_SERVER_ADDRESS=127.0.0.1:9999
+      - TZ=${TZ}
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    restart: always
+
+  # ============================================================
+  # PROWLARR — Indexer Manager (runs through Gluetun VPN)
+  # Manages torrent/usenet indexers. Syncs to Radarr/Sonarr/Lidarr.
+  # ============================================================
+  prowlarr:
+    image: lscr.io/linuxserver/prowlarr:latest
+    container_name: prowlarr
+    network_mode: service:gluetun
+    depends_on:
+      gluetun:
+        condition: service_healthy
+        restart: true
+    environment:
+      - PUID=${PUID}
+      - PGID=${PGID}
+      - TZ=${TZ}
+    volumes:
+      - ./prowlarr:/config
+    restart: unless-stopped
+
+  # ============================================================
+  # FLARESOLVERR — Cloudflare Bypass (runs through Gluetun VPN)
+  # Some indexers use Cloudflare protection. This gets around it.
+  # ============================================================
+  flaresolverr:
+    image: ghcr.io/flaresolverr/flaresolverr:latest
+    container_name: flaresolverr
+    network_mode: service:gluetun
+    depends_on:
+      gluetun:
+        condition: service_healthy
+        restart: true
+    environment:
+      - LOG_LEVEL=info
+      - TZ=${TZ}
+    restart: unless-stopped
+
+  # ============================================================
+  # RADARR — Movie Manager (NOT behind VPN)
+  # Searches via Prowlarr, sends downloads to qBittorrent,
+  # renames and hard-links completed files to media folder.
+  # ============================================================
+  radarr:
+    image: lscr.io/linuxserver/radarr:latest
+    container_name: radarr
+    environment:
+      - PUID=${PUID}
+      - PGID=${PGID}
+      - TZ=${TZ}
+    volumes:
+      - ./radarr:/config
+      - /data:/data
+    ports:
+      - 7878:7878
+    networks:
+      arrnetwork:
+        ipv4_address: ${IP_RADARR}
+    restart: unless-stopped
+
+  # ============================================================
+  # SONARR — TV Show Manager (NOT behind VPN)
+  # Same pattern as Radarr but for TV series.
+  # ============================================================
+  sonarr:
+    image: lscr.io/linuxserver/sonarr:latest
+    container_name: sonarr
+    environment:
+      - PUID=${PUID}
+      - PGID=${PGID}
+      - TZ=${TZ}
+    volumes:
+      - ./sonarr:/config
+      - /data:/data
+    ports:
+      - 8989:8989
+    networks:
+      arrnetwork:
+        ipv4_address: ${IP_SONARR}
+    restart: unless-stopped
+
+  # ============================================================
+  # LIDARR — Music Manager (NOT behind VPN)
+  # Optional. Comment out if you don't need music automation.
+  # ============================================================
+  lidarr:
+    image: lscr.io/linuxserver/lidarr:latest
+    container_name: lidarr
+    environment:
+      - PUID=${PUID}
+      - PGID=${PGID}
+      - TZ=${TZ}
+    volumes:
+      - ./lidarr:/config
+      - /data:/data
+    ports:
+      - 8686:8686
+    networks:
+      arrnetwork:
+        ipv4_address: ${IP_LIDARR}
+    restart: unless-stopped
+
+  # ============================================================
+  # BAZARR — Subtitle Manager (NOT behind VPN)
+  # Automatically downloads subtitles for movies and TV shows.
+  # ============================================================
+  bazarr:
+    image: lscr.io/linuxserver/bazarr:latest
+    container_name: bazarr
+    environment:
+      - PUID=${PUID}
+      - PGID=${PGID}
+      - TZ=${TZ}
+    volumes:
+      - ./bazarr:/config
+      - /data:/data
+    ports:
+      - 6767:6767
+    networks:
+      arrnetwork:
+        ipv4_address: ${IP_BAZARR}
+    restart: unless-stopped
+
+  # ============================================================
+  # JELLYFIN — Media Server (NOT behind VPN)
+  # Your personal streaming service. Plays movies, TV, music.
+  # Needs full bandwidth — never put this behind the VPN.
+  # ============================================================
+  jellyfin:
+    image: lscr.io/linuxserver/jellyfin:latest
+    container_name: jellyfin
+    environment:
+      - PUID=${PUID}
+      - PGID=${PGID}
+      - TZ=${TZ}
+    volumes:
+      - ./jellyfin:/config
+      - /data/media:/data/media
+    ports:
+      - 8096:8096
+    devices:
+      - /dev/dri:/dev/dri  # Hardware transcoding (Intel Quick Sync / VAAPI)
+    networks:
+      arrnetwork:
+        ipv4_address: ${IP_JELLYFIN}
+    restart: unless-stopped
+
+  # ============================================================
+  # SEERR — Request System (NOT behind VPN)
+  # Netflix-like UI for requesting movies and TV shows.
+  # Share this with family — they never need to touch Radarr.
+  # ============================================================
+  seerr:
+    image: ghcr.io/seerr-team/seerr:latest
+    container_name: seerr
+    environment:
+      - PUID=${PUID}
+      - PGID=${PGID}
+      - TZ=${TZ}
+    volumes:
+      - ./seerr:/app/config
+    ports:
+      - 5055:5055
+    networks:
+      arrnetwork:
+        ipv4_address: ${IP_SEERR}
+    restart: unless-stopped
