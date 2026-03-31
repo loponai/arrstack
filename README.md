@@ -74,14 +74,20 @@ Fill in your VPN provider and credentials. See [VPN Setup Guides](#vpn-setup-gui
 docker compose up -d
 ```
 
-### 6. Verify VPN is working
+### 6. Verify everything is working
 
+```bash
+bash test-stack.sh
+```
+
+This runs a full health check — Docker status, VPN connection, IP leak test, service accessibility, hard link support, and folder permissions. If anything is wrong, it tells you exactly what to fix.
+
+You can also check manually:
 ```bash
 # Check Gluetun's IP (should be VPN, not your real IP)
 docker exec gluetun wget -qO- ifconfig.me
 
 # qBittorrent shares Gluetun's network, so the above proves both are tunneled.
-# You can also verify from inside qBittorrent:
 docker exec qbittorrent wget -qO- ifconfig.me
 
 # Check health status of all containers
