@@ -17,7 +17,7 @@ One-command automated media server with VPN protection. Sonarr, Radarr, Prowlarr
 | Lidarr | 8686 | Music automation |
 | Bazarr | 6767 | Subtitle automation |
 | Jellyfin | 8096 | Media server / streaming |
-| Seerr | 5055 | Netflix-like request UI |
+| Jellyseerr | 5055 | Netflix-like request UI |
 
 All download traffic routes through Gluetun's VPN tunnel. If the VPN drops, all traffic stops — zero leaks. The deunhealth container auto-restarts services that become unhealthy.
 
@@ -81,11 +81,11 @@ docker compose up -d
 docker exec gluetun wget -qO- ifconfig.me
 
 # Check qBittorrent is tunneled
-docker exec qbittorrent curl -s ifconfig.me
+docker exec gluetun wget -qO- ifconfig.me
 
 # Kill switch test (optional)
 docker stop gluetun
-docker exec qbittorrent curl -s --max-time 5 ifconfig.me  # Should fail/timeout
+docker exec gluetun wget -qO- --timeout=5 ifconfig.me  # Should fail/timeout
 docker start gluetun
 ```
 
@@ -99,7 +99,7 @@ Open each service in your browser at `http://YOUR-SERVER-IP:PORT` and follow the
 - **Radarr** (`:7878`) — Root folder: `/data/media/movies`, download client category: `movies`
 - **Sonarr** (`:8989`) — Root folder: `/data/media/tv`, download client category: `tv`
 - **Jellyfin** (`:8096`) — Add libraries: `/data/media/movies`, `/data/media/tv`, `/data/media/music`
-- **Seerr** (`:5055`) — Connect to Jellyfin, Radarr, and Sonarr
+- **Jellyseerr** (`:5055`) — Connect to Jellyfin, Radarr, and Sonarr
 
 **Important Radarr/Sonarr settings:**
 - Media Management → Show Advanced → **Use Hardlinks instead of Copy** → must be ON
@@ -132,7 +132,7 @@ SERVER_COUNTRIES=United States
 VPN_SERVICE_PROVIDER=nordvpn
 VPN_TYPE=wireguard
 WIREGUARD_PRIVATE_KEY=your_key_here
-WIREGUARD_ADDRESSES=
+WIREGUARD_ADDRESSES=10.5.0.2/16
 SERVER_COUNTRIES=United States
 ```
 
@@ -184,7 +184,7 @@ docker compose up -d
 
 **qBittorrent can't connect:**
 - Make sure Gluetun is healthy: `docker ps` (should show "healthy")
-- Check qBit is using VPN: `docker exec qbittorrent curl -s ifconfig.me`
+- Check qBit is using VPN: `docker exec gluetun wget -qO- ifconfig.me`
 - In qBittorrent settings → Advanced → set Network Interface to `tun0`
 
 **Hard links not working (files copying instead):**
@@ -200,4 +200,4 @@ docker compose up -d
 
 Built by [Tom Spark](https://youtube.com/@tomspark) following [Trash Guides](https://trash-guides.info/) and [Servarr Wiki](https://wiki.servarr.com/) best practices.
 
-Uses [Gluetun](https://github.com/qdm12/gluetun) for VPN, [LinuxServer.io](https://linuxserver.io) container images, and [Seerr](https://github.com/seerr-team/seerr) for the request system.
+Uses [Gluetun](https://github.com/qdm12/gluetun) for VPN, [LinuxServer.io](https://linuxserver.io) container images, and [Jellyseerr](https://github.com/Fallenbagel/jellyseerr) for the request system.

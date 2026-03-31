@@ -9,7 +9,7 @@
 # All VPN-protected services (qBittorrent, Prowlarr, FlareSolverr) run
 # through Gluetun. If the VPN drops, traffic stops. Zero leaks.
 #
-# Radarr, Sonarr, Lidarr, Bazarr, Jellyfin, and Seerr do NOT run through
+# Radarr, Sonarr, Lidarr, Bazarr, Jellyfin, and Jellyseerr do NOT run through
 # the VPN — they need direct network access for speed and local connectivity.
 
 networks:
@@ -28,7 +28,7 @@ services:
   # Docs: https://github.com/qdm12/gluetun-wiki
   # ============================================================
   gluetun:
-    image: qmcgaw/gluetun
+    image: qmcgaw/gluetun:latest
     container_name: gluetun
     cap_add:
       - NET_ADMIN
@@ -65,7 +65,7 @@ services:
       - TZ=${TZ}
       - HEALTH_VPN_DURATION_INITIAL=120s
     healthcheck:
-      test: ping -c 1 www.google.com || exit 1
+      test: wget -q --spider http://127.0.0.1:9999 || exit 1
       interval: 20s
       timeout: 10s
       retries: 5
@@ -88,6 +88,7 @@ services:
     environment:
       - PUID=${PUID}
       - PGID=${PGID}
+      - UMASK=002
       - TZ=${TZ}
       - WEBUI_PORT=8080
       - TORRENTING_PORT=${FIREWALL_VPN_INPUT_PORTS}
@@ -95,7 +96,7 @@ services:
       - ./qbittorrent:/config
       - /data:/data
     healthcheck:
-      test: ping -c 1 www.google.com || exit 1
+      test: wget -q --spider http://localhost:8080 || exit 1
       interval: 60s
       timeout: 10s
       retries: 3
@@ -133,6 +134,7 @@ services:
     environment:
       - PUID=${PUID}
       - PGID=${PGID}
+      - UMASK=002
       - TZ=${TZ}
     volumes:
       - ./prowlarr:/config
@@ -166,6 +168,7 @@ services:
     environment:
       - PUID=${PUID}
       - PGID=${PGID}
+      - UMASK=002
       - TZ=${TZ}
     volumes:
       - ./radarr:/config
@@ -187,6 +190,7 @@ services:
     environment:
       - PUID=${PUID}
       - PGID=${PGID}
+      - UMASK=002
       - TZ=${TZ}
     volumes:
       - ./sonarr:/config
@@ -208,6 +212,7 @@ services:
     environment:
       - PUID=${PUID}
       - PGID=${PGID}
+      - UMASK=002
       - TZ=${TZ}
     volumes:
       - ./lidarr:/config
@@ -229,6 +234,7 @@ services:
     environment:
       - PUID=${PUID}
       - PGID=${PGID}
+      - UMASK=002
       - TZ=${TZ}
     volumes:
       - ./bazarr:/config
@@ -251,36 +257,40 @@ services:
     environment:
       - PUID=${PUID}
       - PGID=${PGID}
+      - UMASK=002
       - TZ=${TZ}
     volumes:
       - ./jellyfin:/config
       - /data/media:/data/media
     ports:
       - 8096:8096
+    # Hardware transcoding (Intel Quick Sync / VAAPI)
+    # Remove the devices section if you don't have Intel/AMD integrated graphics
     devices:
-      - /dev/dri:/dev/dri  # Hardware transcoding (Intel Quick Sync / VAAPI)
+      - /dev/dri:/dev/dri
     networks:
       arrnetwork:
         ipv4_address: ${IP_JELLYFIN}
     restart: unless-stopped
 
   # ============================================================
-  # SEERR — Request System (NOT behind VPN)
+  # JELLYSEERR — Request System (NOT behind VPN)
   # Netflix-like UI for requesting movies and TV shows.
   # Share this with family — they never need to touch Radarr.
   # ============================================================
-  seerr:
-    image: ghcr.io/seerr-team/seerr:latest
-    container_name: seerr
+  jellyseerr:
+    image: fallenbagel/jellyseerr:latest
+    container_name: jellyseerr
     environment:
       - PUID=${PUID}
       - PGID=${PGID}
+      - UMASK=002
       - TZ=${TZ}
     volumes:
-      - ./seerr:/app/config
+      - ./jellyseerr:/app/config
     ports:
       - 5055:5055
     networks:
       arrnetwork:
-        ipv4_address: ${IP_SEERR}
+        ipv4_address: ${IP_JELLYSEERR}
     restart: unless-stopped
