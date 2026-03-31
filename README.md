@@ -80,13 +80,12 @@ docker compose up -d
 # Check Gluetun's IP (should be VPN, not your real IP)
 docker exec gluetun wget -qO- ifconfig.me
 
-# Check qBittorrent is tunneled
-docker exec gluetun wget -qO- ifconfig.me
+# qBittorrent shares Gluetun's network, so the above proves both are tunneled.
+# You can also verify from inside qBittorrent:
+docker exec qbittorrent wget -qO- ifconfig.me
 
-# Kill switch test (optional)
-docker stop gluetun
-docker exec gluetun wget -qO- --timeout=5 ifconfig.me  # Should fail/timeout
-docker start gluetun
+# Check health status of all containers
+docker ps --format "table {{.Names}}\t{{.Status}}"
 ```
 
 ### 7. Configure services
