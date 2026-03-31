@@ -63,9 +63,8 @@ services:
       - FIREWALL_VPN_INPUT_PORTS=${FIREWALL_VPN_INPUT_PORTS}
       # --- General ---
       - TZ=${TZ}
-      - HEALTH_VPN_DURATION_INITIAL=120s
     healthcheck:
-      test: wget -q --spider http://127.0.0.1:9999 || exit 1
+      test: wget -qO /dev/null http://127.0.0.1:9999 || exit 1
       interval: 20s
       timeout: 10s
       retries: 5
