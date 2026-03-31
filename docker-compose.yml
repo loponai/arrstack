@@ -264,10 +264,11 @@ services:
       - /data/media:/data/media
     ports:
       - 8096:8096
-    # Hardware transcoding (Intel Quick Sync / VAAPI)
-    # Remove the devices section if you don't have Intel/AMD integrated graphics
-    devices:
-      - /dev/dri:/dev/dri
+    # Uncomment the lines below to enable hardware transcoding (Intel Quick Sync / VAAPI).
+    # Only works if your system has Intel/AMD integrated graphics (/dev/dri must exist).
+    # If you get an error about /dev/dri not found, leave these commented out.
+    # devices:
+    #   - /dev/dri:/dev/dri
     networks:
       arrnetwork:
         ipv4_address: ${IP_JELLYFIN}
