@@ -106,10 +106,32 @@ Open each service in your browser at `http://YOUR-SERVER-IP:PORT` and follow the
 - **Jellyfin** (`:8096`) — Add libraries: `/data/media/movies`, `/data/media/tv`, `/data/media/music`
 - **Jellyseerr** (`:5055`) — Connect to Jellyfin, Radarr, and Sonarr
 
+**Internal Docker IPs — use these when connecting services to each other (NOT localhost):**
+
+| IP | Service |
+|----|---------|
+| `172.39.0.2` | Gluetun (also qBittorrent, Prowlarr, FlareSolverr) |
+| `172.39.0.3` | Radarr |
+| `172.39.0.4` | Sonarr |
+| `172.39.0.5` | Lidarr |
+| `172.39.0.6` | Bazarr |
+| `172.39.0.7` | Jellyfin |
+| `172.39.0.8` | Jellyseerr |
+
+These IPs are the same for everyone — they're hardcoded in the docker-compose file.
+
+**Common connections:**
+- Radarr/Sonarr → Download Client → qBittorrent: host `172.39.0.2`, port `8080`
+- Prowlarr → Apps → Radarr: server `http://172.39.0.3:7878`
+- Prowlarr → Apps → Sonarr: server `http://172.39.0.4:8989`
+- Prowlarr → Apps → Prowlarr Server: `http://172.39.0.2:9696`
+- Jellyseerr → Radarr: host `172.39.0.3`, port `7878`
+- Jellyseerr → Sonarr: host `172.39.0.4`, port `8989`
+- Jellyseerr → Jellyfin: host `172.39.0.7`, port `8096`
+
 **Important Radarr/Sonarr settings:**
 - Media Management → Show Advanced → **Use Hardlinks instead of Copy** → must be ON
 - Media Management → **Rename Movies/Episodes** → recommended ON
-- Download Client → qBittorrent host: `172.39.0.2` (Gluetun's IP), port: `8080`
 
 ## VPN Setup Guides
 
