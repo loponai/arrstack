@@ -180,6 +180,34 @@ docker compose pull
 docker compose up -d
 ```
 
+## Remote Access with Tailscale (Optional)
+
+Want to access Jellyfin, Jellyseerr, or any service from outside your home? [Tailscale](https://tailscale.com/) creates a private network between your devices — no port forwarding, no exposing anything to the public internet.
+
+**On your server:**
+```bash
+curl -fsSL https://tailscale.com/install.sh | sh
+sudo tailscale up
+```
+
+**On your phone/laptop/TV:**
+1. Install Tailscale from your app store
+2. Sign in with the same account
+
+**Access your services from anywhere:**
+```
+http://YOUR-TAILSCALE-IP:8096    ← Jellyfin
+http://YOUR-TAILSCALE-IP:5055    ← Jellyseerr
+http://YOUR-TAILSCALE-IP:7878    ← Radarr
+http://YOUR-TAILSCALE-IP:8989    ← Sonarr
+```
+
+Find your Tailscale IP with `tailscale ip -4` on the server.
+
+Tailscale is free for personal use (up to 100 devices). Everything is encrypted with WireGuard — nobody can see your traffic, not even Tailscale.
+
+> **Do NOT expose Jellyfin directly to the internet** (no port forwarding on your router). Use Tailscale or a reverse proxy instead. Direct exposure is a security risk.
+
 ## Troubleshooting
 
 **Gluetun unhealthy / won't connect:**
