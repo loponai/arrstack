@@ -292,6 +292,33 @@ Tailscale is free for personal use (up to 100 devices). Everything is encrypted 
 
 > **Do NOT expose Jellyfin directly to the internet** (no port forwarding on your router). Use Tailscale or a reverse proxy instead. Direct exposure is a security risk.
 
+### Sharing with Family and Friends
+
+Your family and friends only need two things — **Jellyseerr** to request movies/shows and **Jellyfin** to watch them. They never see Radarr, Sonarr, qBittorrent, or any of the behind-the-scenes stuff.
+
+**Step 1: Invite them to your Tailscale network**
+
+1. Go to the [Tailscale admin console](https://login.tailscale.com/admin/machines)
+2. Click **Share** on your server's machine
+3. Enter their email — they'll get an invite link
+
+**Step 2: They install Tailscale**
+
+1. Download Tailscale on their phone, laptop, or TV from [tailscale.com/download](https://tailscale.com/download)
+2. Accept your invite and sign in
+
+**Step 3: They access your services**
+
+Give them these two links (replace with your Tailscale IP):
+```
+http://YOUR-TAILSCALE-IP:5055    ← Jellyseerr (request movies and shows)
+http://YOUR-TAILSCALE-IP:8096    ← Jellyfin (watch everything)
+```
+
+**For TVs and phones**, they can install the **Jellyfin app** (available on Roku, Fire TV, Apple TV, Android TV, iOS, Android) and enter your Tailscale IP as the server address during setup.
+
+That's it — they request, you automatically download, they watch. No technical knowledge needed on their end.
+
 ## Troubleshooting
 
 **Gluetun unhealthy / won't connect:**
