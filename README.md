@@ -389,6 +389,65 @@ Another program on your system might be using the same port. This is common with
    docker compose up -d --force-recreate <service-name>
    ```
 
+**Can't log into qBittorrent:**
+- qBittorrent generates a temporary password every time it starts. Get it with:
+  ```bash
+  docker logs qbittorrent 2>&1 | grep "temporary password"
+  ```
+- Default username is `admin`. Once logged in, go to Tools → Options → Web UI and set a permanent password.
+
+**Services can't connect to each other (connection refused, timeout):**
+- Don't use `localhost` when connecting services together — that won't work across Docker containers.
+- Use the internal Docker IPs instead:
+  - qBittorrent/Prowlarr/FlareSolverr: `172.39.0.2`
+  - Radarr: `172.39.0.3`
+  - Sonarr: `172.39.0.4`
+  - Jellyfin: `172.39.0.7`
+- The one exception: Prowlarr → FlareSolverr can use `localhost:8191` because they both run through Gluetun and share the same network.
+
+**"Root folder does not exist" in Radarr/Sonarr:**
+- Make sure you ran `sudo bash setup-folders.sh` to create the `/data` directory structure.
+- Double-check the root folder path — it should be `/data/media/movies` for Radarr and `/data/media/tv` for Sonarr (not `/movies` or `/data/movies`).
+
+**Downloads stuck at "importing" or "waiting to import":**
+- This is almost always a permissions issue. Fix it with:
+  ```bash
+  sudo chown -R $(id -u):$(id -g) /data
+  sudo chmod -R 775 /data
+  ```
+- Make sure PUID/PGID in your `.env` match your user (check with `id`).
+
+**Jellyfin library is empty after downloads finish:**
+- Make sure your Jellyfin libraries point to the correct paths: `/data/media/movies`, `/data/media/tv`, `/data/media/music`
+- Jellyfin doesn't scan instantly. Go to Dashboard → Libraries → click the `...` menu → **Scan Library** to force a refresh.
+- You can also set up scheduled scans in Dashboard → Scheduled Tasks.
+
+**Subtitles not downloading (Bazarr):**
+- Bazarr needs to be connected to Radarr and Sonarr: Settings → Radarr / Sonarr → enter the IP (`172.39.0.3` / `172.39.0.4`) and API key.
+- You also need at least one subtitle provider: Settings → Providers → Add → **OpenSubtitles.com** is the most popular (free account required).
+
+**Everything works but downloads are slow:**
+- Your VPN server might be too far away. Change `SERVER_COUNTRIES` in your `.env` to a country closer to you, then restart:
+  ```bash
+  docker compose down && docker compose up -d
+  ```
+- Check your VPN speed: `docker exec gluetun wget -qO- https://speed.cloudflare.com/__down?measId=10000000 > /dev/null` — if it's very slow, try a different country.
+
+**Disk space filling up:**
+- By default, qBittorrent keeps torrents after Radarr/Sonarr imports them. To auto-clean:
+  - In Radarr/Sonarr → Settings → Download Clients → click on qBittorrent → enable **Remove Completed**
+  - This deletes the torrent from qBittorrent after the file has been imported (the hard link in your media folder is kept, so you don't lose anything).
+
+**VPN IP leak — want to make sure your real IP isn't exposed:**
+```bash
+# Check the VPN container's IP (should NOT be your real IP)
+docker exec gluetun wget -qO- ifconfig.me
+
+# Compare with your real IP (run this outside Docker)
+curl -s ifconfig.me
+```
+If both IPs are the same, your VPN isn't working — check Gluetun logs with `docker logs gluetun`.
+
 ## Credits
 
 Built by [Tom Spark](https://youtube.com/@tomspark) following [Trash Guides](https://trash-guides.info/) and [Servarr Wiki](https://wiki.servarr.com/) best practices.
