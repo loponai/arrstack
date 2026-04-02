@@ -100,7 +100,7 @@ Open each service in your browser at `http://YOUR-SERVER-IP:PORT` and follow the
 
 **Quick reference:**
 - **qBittorrent** (`:8080`) — Get temp password: `docker logs qbittorrent 2>&1 | grep "temporary password"`
-- **Prowlarr** (`:9696`) — Add indexers, connect to Radarr/Sonarr
+- **Prowlarr** (`:9696`) — Add indexers, connect to Radarr/Sonarr. If an indexer is blocked by Cloudflare, set up FlareSolverr as a proxy: Settings → Indexers → Add Proxy → FlareSolverr → host `http://localhost:8191` → give it a tag (e.g. `flaresolverr`). Then edit the blocked indexer and add the **same tag** so Prowlarr routes it through FlareSolverr.
 - **Radarr** (`:7878`) — Root folder: `/data/media/movies`, download client category: `movies`
 - **Sonarr** (`:8989`) — Root folder: `/data/media/tv`, download client category: `tv`
 - **Jellyfin** (`:8096`) — Add libraries: `/data/media/movies`, `/data/media/tv`, `/data/media/music`
@@ -136,7 +136,7 @@ These IPs are the same for everyone — they're hardcoded in the docker-compose 
 ## VPN Setup Guides
 
 ### Surfshark (Recommended)
-The best value for torrenting — cheapest long-term plans, fast WireGuard speeds, and easy setup with Gluetun. [Get Surfshark](https://surfshark.com/friend/tomspark)
+The best value for torrenting — cheapest long-term plans, fast WireGuard speeds, and easy setup with Gluetun. [Get Surfshark](https://get.surfshark.net/aff_c?offer_id=1126&aff_id=9447&aff_sub=8amjxr)
 
 1. Go to [Surfshark Manual Setup](https://my.surfshark.com/vpn/manual-setup/main)
 2. Select **WireGuard** and get your credentials (private key + address)
@@ -194,6 +194,57 @@ VPN_PORT_FORWARDING=on
 ### Other Providers
 Gluetun supports 30+ providers. Check the [full provider list](https://github.com/qdm12/gluetun-wiki/tree/main/setup/providers).
 
+## Starting and Stopping
+
+**Start the stack:**
+```bash
+cd arrstack
+docker compose up -d
+```
+
+**Stop the stack:**
+```bash
+cd arrstack
+docker compose down
+```
+
+**Check status:**
+```bash
+docker ps --format "table {{.Names}}\t{{.Status}}"
+```
+
+### Auto-Start After Reboot
+
+All containers are set to `restart: unless-stopped`, so they automatically come back once Docker is running. You just need to make sure Docker starts on boot.
+
+**Linux:**
+```bash
+sudo systemctl enable docker
+```
+That's it — Docker and all your containers start automatically on boot.
+
+**Windows (WSL):**
+
+WSL doesn't auto-start Docker by default. Add this to your WSL config:
+
+```bash
+sudo nano /etc/wsl.conf
+```
+
+Add these lines:
+```ini
+[boot]
+command=service docker start
+```
+
+Now Docker starts automatically whenever WSL launches. To make WSL launch at Windows login, press `Win+R`, type `shell:startup`, and create a file called `wsl.vbs` with:
+```vbs
+Set ws = CreateObject("Wscript.Shell")
+ws.Run "wsl -d Ubuntu -u root -- service docker start", 0
+```
+
+After this, your stack will be fully automatic — reboot your PC and everything comes back up on its own.
+
 ## Updating
 
 ```bash
@@ -250,6 +301,39 @@ Tailscale is free for personal use (up to 100 devices). Everything is encrypted 
 **Permission errors:**
 - Run `id` and make sure PUID/PGID in `.env` match your user
 - Re-run: `sudo chown -R $(id -u):$(id -g) /data`
+
+**Service won't start — "port already in use":**
+
+Another program on your system might be using the same port. This is common with port 5055 (Jellyseerr) but can happen with any service.
+
+1. Find what's using the port (replace `5055` with the port number from the error):
+
+   **Linux:**
+   ```bash
+   sudo ss -tlnp | grep 5055
+   ```
+
+   **Windows (WSL users) — run in PowerShell:**
+   ```powershell
+   netstat -ano | findstr :5055
+   ```
+   This gives you a PID (process ID). Find the program name:
+   ```powershell
+   Get-Process -Id <PID> | Select-Object ProcessName, Id, Path
+   ```
+
+2. Either stop/disable that program, or change the port in `docker-compose.yml` to an unused one (e.g. `5056:5055`).
+
+3. If it's a Windows service hogging the port, disable it in an admin PowerShell:
+   ```powershell
+   Stop-Service <ServiceName> -Force
+   Set-Service <ServiceName> -StartupType Disabled
+   ```
+
+4. Then recreate the container:
+   ```bash
+   docker compose up -d --force-recreate <service-name>
+   ```
 
 ## Credits
 
