@@ -133,6 +133,16 @@ These IPs are the same for everyone — they're hardcoded in the docker-compose 
 - Media Management → Show Advanced → **Use Hardlinks instead of Copy** → must be ON
 - Media Management → **Rename Movies/Episodes** → recommended ON
 
+**Recommended quality profile (1080p baseline, 4K preferred):**
+
+Go to Settings → Profiles and edit or create a profile:
+1. Uncheck everything below 1080p (720p, 480p, etc.)
+2. Check/enable everything from **HDTV-1080p** up through **Bluray-2160p**
+3. Set **Cutoff** to `Bluray-1080p` — this is the minimum quality Radarr/Sonarr will be happy with
+4. Set **Upgrade Until** to `Bluray-2160p` — it will automatically upgrade to 4K if one becomes available
+
+This means it grabs a 1080p release right away so you can start watching, then silently upgrades to 4K later if it finds one.
+
 ## VPN Setup Guides
 
 ### Surfshark (Recommended)
