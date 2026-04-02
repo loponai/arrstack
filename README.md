@@ -103,7 +103,7 @@ Open each service in your browser at `http://YOUR-SERVER-IP:PORT` and follow the
 - **Prowlarr** (`:9696`) — Add indexers, connect to Radarr/Sonarr. If an indexer is blocked by Cloudflare, set up FlareSolverr as a proxy: Settings → Indexers → Add Proxy → FlareSolverr → host `http://localhost:8191` → give it a tag (e.g. `flaresolverr`). Then edit the blocked indexer and add the **same tag** so Prowlarr routes it through FlareSolverr.
 - **Radarr** (`:7878`) — Root folder: `/data/media/movies`, download client category: `movies`
 - **Sonarr** (`:8989`) — Root folder: `/data/media/tv`, download client category: `tv`
-- **Jellyfin** (`:8096`) — Add libraries: `/data/media/movies`, `/data/media/tv`, `/data/media/music`
+- **Jellyfin** (`:8096`) — Add libraries: `/data/media/movies`, `/data/media/tv`, `/data/media/music`. To watch, open `http://YOUR-SERVER-IP:8096` in a browser or use the Jellyfin app (available on Roku, Fire TV, Apple TV, Android TV, iOS, Android). Find your server IP by running `hostname -I` in the terminal. If watching remotely with Tailscale, use your Tailscale IP instead.
 - **Jellyseerr** (`:5055`) — Connect to Jellyfin, Radarr, and Sonarr
 
 **Internal Docker IPs — use these when connecting services to each other (NOT localhost):**
