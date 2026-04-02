@@ -341,6 +341,12 @@ That's it — they request, you automatically download, they watch. No technical
 - Check qBit is using VPN: `docker exec gluetun wget -qO- ifconfig.me`
 - In qBittorrent settings → Advanced → set Network Interface to `tun0`
 
+**Movie or show not downloading:**
+- **Quality profile too strict** — If Radarr/Sonarr can't find a release matching your quality profile, it won't download anything. Go to the movie/show → check if it says "No results found" or similar. Try lowering your cutoff temporarily (e.g. from Bluray-1080p to WEBDL-1080p) or enabling more quality tiers in your profile.
+- **Not enough indexers** — Public indexers have limited catalogs. If you only have one or two indexers in Prowlarr, add more (1337x, The Pirate Bay, LimeTorrents, EZTV). The more indexers you have, the more results you'll get.
+- **Not enough seeders** — Some torrents just don't have anyone sharing them, especially older or niche content. Check qBittorrent — if the torrent is stuck at 0% with 0 seeds, there's nothing to download. Try searching manually in Radarr/Sonarr for a different release with more seeders.
+- **Indexer blocked by Cloudflare** — See the Prowlarr setup note above about setting up FlareSolverr with tags.
+
 **Hard links not working (files copying instead):**
 - Both `/data/torrents` and `/data/media` must be on the same filesystem
 - Check Radarr/Sonarr → Settings → Media Management → "Use Hardlinks" is checked
