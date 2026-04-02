@@ -215,35 +215,46 @@ docker ps --format "table {{.Names}}\t{{.Status}}"
 
 ### Auto-Start After Reboot
 
-All containers are set to `restart: unless-stopped`, so they automatically come back once Docker is running. You just need to make sure Docker starts on boot.
+All containers are set to `restart: unless-stopped`, which means they automatically come back once Docker is running. You just need to make sure Docker itself starts when your computer boots up.
 
-**Linux:**
+**Linux (dedicated server or VM):**
+
+Run this once and you're done:
 ```bash
 sudo systemctl enable docker
 ```
-That's it — Docker and all your containers start automatically on boot.
 
-**Windows (WSL):**
+**Windows (running Docker inside WSL):**
 
-WSL doesn't auto-start Docker by default. Add this to your WSL config:
+WSL (Windows Subsystem for Linux) doesn't start Docker automatically when your PC boots. Here's how to fix that:
 
+**Step 1:** Open your WSL terminal and run this command to edit the WSL config file:
 ```bash
 sudo nano /etc/wsl.conf
 ```
 
-Add these lines:
+**Step 2:** Your file might already have some lines in it (like `[boot]` or `[user]`). Look for a `[boot]` section. If it exists, add the `command=` line under it. If it doesn't exist, add both lines. It should look like this when you're done:
 ```ini
 [boot]
 command=service docker start
 ```
 
-Now Docker starts automatically whenever WSL launches. To make WSL launch at Windows login, press `Win+R`, type `shell:startup`, and create a file called `wsl.vbs` with:
+**Step 3:** Save the file by pressing `Ctrl+X`, then `Y`, then `Enter`.
+
+**Step 4 (optional):** By default, WSL only starts when you open a terminal. If you want it to start automatically when Windows boots (so your stack is always running), do this:
+
+1. Press `Win+R` on your keyboard
+2. Type `shell:startup` and press Enter — this opens your Windows Startup folder
+3. Right-click in the folder → New → Text Document
+4. Name it `wsl.vbs` (make sure it ends in `.vbs`, not `.vbs.txt` — if you can't see file extensions, go to View → Show → File name extensions in File Explorer)
+5. Right-click the file → Edit (or Open with Notepad) and paste this:
 ```vbs
 Set ws = CreateObject("Wscript.Shell")
 ws.Run "wsl -d Ubuntu -u root -- service docker start", 0
 ```
+6. Save and close
 
-After this, your stack will be fully automatic — reboot your PC and everything comes back up on its own.
+That's it — next time your PC restarts, WSL starts Docker automatically and all your containers come back up on their own. No commands needed.
 
 ## Updating
 
