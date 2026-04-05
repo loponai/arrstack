@@ -17,7 +17,7 @@ One-command automated media server with VPN protection. Sonarr, Radarr, Prowlarr
 | Lidarr | 8686 | Music automation |
 | Bazarr | 6767 | Subtitle automation |
 | Jellyfin | 8096 | Media server / streaming |
-| Jellyseerr | 5055 | Netflix-like request UI |
+| Seerr | 5055 | Netflix-like request UI (Overseerr/Jellyseerr successor) |
 
 All download traffic routes through Gluetun's VPN tunnel. If the VPN drops, all traffic stops — zero leaks. The deunhealth container auto-restarts services that become unhealthy.
 
@@ -104,7 +104,7 @@ Open each service in your browser at `http://YOUR-SERVER-IP:PORT` and follow the
 - **Radarr** (`:7878`) — Root folder: `/data/media/movies`, download client category: `movies`
 - **Sonarr** (`:8989`) — Root folder: `/data/media/tv`, download client category: `tv`
 - **Jellyfin** (`:8096`) — Add libraries: `/data/media/movies`, `/data/media/tv`, `/data/media/music`. To watch, open `http://YOUR-SERVER-IP:8096` in a browser or use the Jellyfin app (available on Roku, Fire TV, Apple TV, Android TV, iOS, Android). Find your server IP by running `hostname -I` in the terminal. If watching remotely with Tailscale, use your Tailscale IP instead.
-- **Jellyseerr** (`:5055`) — Connect to Jellyfin, Radarr, and Sonarr
+- **Seerr** (`:5055`) — Connect to Jellyfin, Radarr, and Sonarr. Seerr is the unified successor to Overseerr/Jellyseerr. If you previously ran Jellyseerr here, your existing config is migrated automatically on first start.
 
 **Internal Docker IPs — use these when connecting services to each other (NOT localhost):**
 
@@ -116,7 +116,7 @@ Open each service in your browser at `http://YOUR-SERVER-IP:PORT` and follow the
 | `172.39.0.5` | Lidarr |
 | `172.39.0.6` | Bazarr |
 | `172.39.0.7` | Jellyfin |
-| `172.39.0.8` | Jellyseerr |
+| `172.39.0.8` | Seerr |
 
 These IPs are the same for everyone — they're hardcoded in the docker-compose file.
 
@@ -125,9 +125,9 @@ These IPs are the same for everyone — they're hardcoded in the docker-compose 
 - Prowlarr → Apps → Radarr: server `http://172.39.0.3:7878`
 - Prowlarr → Apps → Sonarr: server `http://172.39.0.4:8989`
 - Prowlarr → Apps → Prowlarr Server: `http://172.39.0.2:9696`
-- Jellyseerr → Radarr: host `172.39.0.3`, port `7878`
-- Jellyseerr → Sonarr: host `172.39.0.4`, port `8989`
-- Jellyseerr → Jellyfin: host `172.39.0.7`, port `8096`
+- Seerr → Radarr: host `172.39.0.3`, port `7878`
+- Seerr → Sonarr: host `172.39.0.4`, port `8989`
+- Seerr → Jellyfin: host `172.39.0.7`, port `8096`
 
 **Important Radarr/Sonarr settings:**
 - Media Management → Show Advanced → **Use Hardlinks instead of Copy** → must be ON
@@ -276,7 +276,7 @@ docker compose up -d
 
 ## Remote Access with Tailscale (Optional)
 
-Want to access Jellyfin, Jellyseerr, or any service from outside your home? [Tailscale](https://tailscale.com/) creates a private network between your devices — no port forwarding, no exposing anything to the public internet.
+Want to access Jellyfin, Seerr, or any service from outside your home? [Tailscale](https://tailscale.com/) creates a private network between your devices — no port forwarding, no exposing anything to the public internet.
 
 **On your server:**
 ```bash
@@ -291,7 +291,7 @@ sudo tailscale up
 **Access your services from anywhere:**
 ```
 http://YOUR-TAILSCALE-IP:8096    ← Jellyfin
-http://YOUR-TAILSCALE-IP:5055    ← Jellyseerr
+http://YOUR-TAILSCALE-IP:5055    ← Seerr
 http://YOUR-TAILSCALE-IP:7878    ← Radarr
 http://YOUR-TAILSCALE-IP:8989    ← Sonarr
 ```
@@ -304,7 +304,7 @@ Tailscale is free for personal use (up to 100 devices). Everything is encrypted 
 
 ### Sharing with Family and Friends
 
-Your family and friends only need two things — **Jellyseerr** to request movies/shows and **Jellyfin** to watch them. They never see Radarr, Sonarr, qBittorrent, or any of the behind-the-scenes stuff.
+Your family and friends only need two things — **Seerr** to request movies/shows and **Jellyfin** to watch them. They never see Radarr, Sonarr, qBittorrent, or any of the behind-the-scenes stuff.
 
 **Step 1: Invite them to your Tailscale network**
 
@@ -321,7 +321,7 @@ Your family and friends only need two things — **Jellyseerr** to request movie
 
 Give them these two links (replace with your Tailscale IP):
 ```
-http://YOUR-TAILSCALE-IP:5055    ← Jellyseerr (request movies and shows)
+http://YOUR-TAILSCALE-IP:5055    ← Seerr (request movies and shows)
 http://YOUR-TAILSCALE-IP:8096    ← Jellyfin (watch everything)
 ```
 
@@ -358,7 +358,7 @@ That's it — they request, you automatically download, they watch. No technical
 
 **Service won't start — "port already in use":**
 
-Another program on your system might be using the same port. This is common with port 5055 (Jellyseerr) but can happen with any service.
+Another program on your system might be using the same port. This is common with port 5055 (Seerr) but can happen with any service.
 
 1. Find what's using the port (replace `5055` with the port number from the error):
 
@@ -452,4 +452,4 @@ If both IPs are the same, your VPN isn't working — check Gluetun logs with `do
 
 Built by [Tom Spark](https://youtube.com/@tomspark) following [Trash Guides](https://trash-guides.info/) and [Servarr Wiki](https://wiki.servarr.com/) best practices.
 
-Uses [Gluetun](https://github.com/qdm12/gluetun) for VPN, [LinuxServer.io](https://linuxserver.io) container images, and [Jellyseerr](https://github.com/Fallenbagel/jellyseerr) for the request system.
+Uses [Gluetun](https://github.com/qdm12/gluetun) for VPN, [LinuxServer.io](https://linuxserver.io) container images, and [Seerr](https://github.com/seerr-team/seerr) for the request system (the unified successor to Overseerr/Jellyseerr).

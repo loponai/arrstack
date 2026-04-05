@@ -9,7 +9,7 @@
 # All VPN-protected services (qBittorrent, Prowlarr, FlareSolverr) run
 # through Gluetun. If the VPN drops, traffic stops. Zero leaks.
 #
-# Radarr, Sonarr, Lidarr, Bazarr, Jellyfin, and Jellyseerr do NOT run through
+# Radarr, Sonarr, Lidarr, Bazarr, Jellyfin, and Seerr do NOT run through
 # the VPN — they need direct network access for speed and local connectivity.
 
 networks:
@@ -274,23 +274,34 @@ services:
     restart: unless-stopped
 
   # ============================================================
-  # JELLYSEERR — Request System (NOT behind VPN)
+  # SEERR — Request System (NOT behind VPN)
   # Netflix-like UI for requesting movies and TV shows.
   # Share this with family — they never need to touch Radarr.
+  #
+  # Seerr is the unified successor to Overseerr and Jellyseerr
+  # (merged under seerr-team). Supports Plex, Jellyfin, and Emby.
+  # If you previously ran Jellyseerr, the ./jellyseerr volume
+  # below is migrated automatically on first start.
   # ============================================================
-  jellyseerr:
-    image: fallenbagel/jellyseerr:latest
-    container_name: jellyseerr
+  seerr:
+    image: ghcr.io/seerr-team/seerr:latest
+    init: true
+    container_name: seerr
     environment:
-      - PUID=${PUID}
-      - PGID=${PGID}
-      - UMASK=002
+      - LOG_LEVEL=info
       - TZ=${TZ}
+      - PORT=5055
     volumes:
       - ./jellyseerr:/app/config
     ports:
       - 5055:5055
+    healthcheck:
+      test: wget --no-verbose --tries=1 --spider http://localhost:5055/api/v1/status || exit 1
+      start_period: 20s
+      timeout: 3s
+      interval: 15s
+      retries: 3
     networks:
       arrnetwork:
-        ipv4_address: ${IP_JELLYSEERR}
+        ipv4_address: ${IP_SEERR}
     restart: unless-stopped

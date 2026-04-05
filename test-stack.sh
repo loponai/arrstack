@@ -117,7 +117,7 @@ fi
 # ============================================================
 header "Containers"
 
-EXPECTED_SERVICES="gluetun qbittorrent deunhealth prowlarr flaresolverr radarr sonarr lidarr bazarr jellyfin jellyseerr"
+EXPECTED_SERVICES="gluetun qbittorrent deunhealth prowlarr flaresolverr radarr sonarr lidarr bazarr jellyfin seerr"
 
 for svc in $EXPECTED_SERVICES; do
     STATUS=$(docker inspect --format '{{.State.Status}}' "$svc" 2>/dev/null)
@@ -149,7 +149,7 @@ for svc in $EXPECTED_SERVICES; do
         if [ "$svc" = "qbittorrent" ] || [ "$svc" = "prowlarr" ] || [ "$svc" = "flaresolverr" ]; then
             fix "Waiting for Gluetun to be healthy. Check Gluetun status first."
             fix "If Gluetun is healthy, try: docker compose up -d $svc"
-        elif [ "$svc" = "jellyseerr" ]; then
+        elif [ "$svc" = "seerr" ]; then
             fix "Port 5055 may be in use. Check: ss -tlnp | grep 5055"
             fix "Or change the port in docker-compose.yml"
         else
@@ -266,7 +266,7 @@ check_http sonarr 8989
 check_http lidarr 8686
 check_http bazarr 6767
 check_http jellyfin 8096
-check_http jellyseerr 5055
+check_http seerr 5055
 
 # ============================================================
 # TEST 7: Hard link capability
