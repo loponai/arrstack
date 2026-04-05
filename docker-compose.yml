@@ -280,8 +280,9 @@ services:
   #
   # Seerr is the unified successor to Overseerr and Jellyseerr
   # (merged under seerr-team). Supports Plex, Jellyfin, and Emby.
-  # If you previously ran Jellyseerr, the ./jellyseerr volume
-  # below is migrated automatically on first start.
+  # Migrating from Jellyseerr? Rename your old folder once:
+  #   docker compose down && mv jellyseerr seerr && docker compose up -d
+  # Seerr will auto-migrate the existing SQLite DB on first start.
   # ============================================================
   seerr:
     image: ghcr.io/seerr-team/seerr:latest
@@ -292,7 +293,7 @@ services:
       - TZ=${TZ}
       - PORT=5055
     volumes:
-      - ./jellyseerr:/app/config
+      - ./seerr:/app/config
     ports:
       - 5055:5055
     healthcheck:
