@@ -155,6 +155,15 @@ for svc in $EXPECTED_SERVICES; do
         else
             fix "Try: docker compose up -d $svc"
         fi
+    elif [ "$STATUS" = "restarting" ]; then
+        fail "$svc — crash-looping (restarting)"
+        fix "Check logs: docker logs $svc | tail -30"
+        if [ "$svc" = "seerr" ]; then
+            fix "Seerr may have a corrupt config. Try: docker compose down seerr && rm -rf seerr && docker compose up -d seerr"
+            fix "WSL/Windows users: if it keeps crashing, try a named volume instead of a bind mount"
+        else
+            fix "Try: docker compose down $svc && docker compose up -d $svc"
+        fi
     elif [ "$STATUS" = "exited" ]; then
         fail "$svc — exited (crashed)"
         fix "Check logs: docker logs $svc | tail -30"

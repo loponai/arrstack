@@ -389,6 +389,14 @@ Another program on your system might be using the same port. This is common with
    docker compose up -d --force-recreate <service-name>
    ```
 
+**Seerr stuck restarting / crash-looping:**
+- Check the logs first: `docker logs seerr | tail -30`
+- If the config is corrupted, wipe it and start fresh:
+  ```bash
+  docker compose down seerr && rm -rf seerr && docker compose up -d seerr
+  ```
+- **WSL/Windows users:** Seerr's SQLite database can corrupt on NTFS bind mounts. If it keeps crashing, switch to a named Docker volume — replace `./seerr:/app/config` with `seerr_config:/app/config` in `docker-compose.yml` and add `seerr_config:` under a top-level `volumes:` section.
+
 **Can't log into qBittorrent:**
 - qBittorrent generates a temporary password every time it starts. Get it with:
   ```bash
