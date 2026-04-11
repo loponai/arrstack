@@ -280,9 +280,16 @@ services:
   #
   # Seerr is the unified successor to Overseerr and Jellyseerr
   # (merged under seerr-team). Supports Plex, Jellyfin, and Emby.
-  # Migrating from Jellyseerr? Rename your old folder once:
-  #   docker compose down && mv jellyseerr seerr && docker compose up -d
-  # Seerr will auto-migrate the existing SQLite DB on first start.
+  #
+  # Config uses a NAMED Docker volume (not a bind mount). This is
+  # required: Seerr runs as the `node` user (UID 1000) and a
+  # bind-mounted host folder is created root-owned, causing a
+  # permission-denied crash loop. On Windows/WSL, bind mounts also
+  # corrupt the SQLite DB over SMB. Named volumes fix both cases
+  # (matches upstream Seerr docs).
+  #
+  # Migrating from ./jellyseerr or ./seerr bind mount? See README
+  # troubleshooting "Migrating Seerr config to a named volume".
   # ============================================================
   seerr:
     image: ghcr.io/seerr-team/seerr:latest
@@ -293,11 +300,11 @@ services:
       - TZ=${TZ}
       - PORT=5055
     volumes:
-      - ./seerr:/app/config
+      - seerr_config:/app/config
     ports:
       - 5055:5055
     healthcheck:
-      test: wget --no-verbose --tries=1 --spider http://localhost:5055/api/v1/status || exit 1
+      test: wget --no-verbose --tries=1 --spider http://localhost:5055/api/v1/settings/public || exit 1
       start_period: 20s
       timeout: 3s
       interval: 15s
@@ -306,3 +313,6 @@ services:
       arrnetwork:
         ipv4_address: ${IP_SEERR}
     restart: unless-stopped
+
+volumes:
+  seerr_config:

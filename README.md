@@ -390,12 +390,37 @@ Another program on your system might be using the same port. This is common with
    ```
 
 **Seerr stuck restarting / crash-looping:**
-- Check the logs first: `docker logs seerr | tail -30`
-- If the config is corrupted, wipe it and start fresh:
+
+The current `docker-compose.yml` uses a named volume (`seerr_config`) for Seerr's config, which fixes both causes of the crash loop. If you're still hitting it, you're almost certainly on an older version of this repo that used a bind mount. `git pull` first.
+
+Root cause (for reference):
+- **Linux/macOS:** Seerr runs as the `node` user (UID 1000). A bind-mounted `./seerr` folder is created root-owned on first `docker compose up`, so the container can't write to `/app/config` and crash-loops. Upstream Seerr docs require `chown -R 1000:1000` on the config dir before first start.
+- **Windows/WSL:** Bind mounts go through an SMB share inside Docker Desktop's VM, which doesn't support file locking. Seerr's SQLite DB corrupts on first write. Upstream Seerr docs explicitly say: **do not bind-mount `/app/config` on Windows** — use a named volume.
+
+Named volumes sidestep both problems because Docker creates them with correct ownership inside its own managed storage.
+
+If you still see it after pulling:
+- Check logs: `docker logs seerr | tail -30`
+- Nuke the volume and start fresh (you'll lose Seerr settings, not media):
   ```bash
-  docker compose down seerr && rm -rf seerr && docker compose up -d seerr
+  docker compose down seerr && docker volume rm arrstack_seerr_config && docker compose up -d seerr
   ```
-- **WSL/Windows users:** Seerr's SQLite database can corrupt on NTFS bind mounts. If it keeps crashing, switch to a named Docker volume — replace `./seerr:/app/config` with `seerr_config:/app/config` in `docker-compose.yml` and add `seerr_config:` under a top-level `volumes:` section.
+
+**Migrating Seerr config to a named volume (existing installs):**
+
+If you had Seerr working on an older version of this repo with a bind-mounted `./jellyseerr` or `./seerr` folder and want to keep your settings, copy the data into the new named volume before starting:
+
+```bash
+docker compose down seerr
+# pick whichever folder you actually have
+SRC=./seerr
+[ -d ./jellyseerr ] && SRC=./jellyseerr
+docker volume create arrstack_seerr_config
+docker run --rm -v "$(pwd)/${SRC#./}":/src -v arrstack_seerr_config:/dest alpine sh -c "cp -a /src/. /dest/ && chown -R 1000:1000 /dest"
+docker compose up -d seerr
+```
+
+If you don't care about preserving settings, just `docker compose up -d seerr` — Seerr will start fresh and walk you through setup again.
 
 **Can't log into qBittorrent:**
 - qBittorrent generates a temporary password every time it starts. Get it with:
