@@ -292,7 +292,7 @@ services:
   # troubleshooting "Migrating Seerr config to a named volume".
   # ============================================================
   seerr:
-    image: ghcr.io/seerr-team/seerr:latest
+    image: ghcr.io/seerr-team/seerr:v3.0.1
     init: true
     container_name: seerr
     environment:
